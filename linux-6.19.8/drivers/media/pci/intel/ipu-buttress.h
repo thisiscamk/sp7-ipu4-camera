@@ -12,7 +12,16 @@
 #define IPU_BUTTRESS_NUM_OF_PLL_CKS	3
 #define IPU_BUTTRESS_TSC_CLK		19200000
 
-#define BUTTRESS_POWER_TIMEOUT			200
+/*
+ * readl_poll_timeout() takes microseconds; a bare 200 gave the power
+ * island only 200us to complete the buttress handshake. That passes
+ * while the rails are warm (load-time storms, back-to-back streams)
+ * but a cold power-up after the island has been off for hours takes
+ * longer, times out, and latches the device into runtime PM error
+ * state until reboot. The ipu6 driver uses 200ms for the same
+ * handshake; match it.
+ */
+#define BUTTRESS_POWER_TIMEOUT			(200 * USEC_PER_MSEC)
 
 #define BUTTRESS_PS_FREQ_STEP		25U
 #define BUTTRESS_MIN_FORCE_PS_FREQ	(BUTTRESS_PS_FREQ_STEP * 8)

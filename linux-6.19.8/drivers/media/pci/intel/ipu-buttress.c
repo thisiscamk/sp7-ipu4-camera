@@ -535,7 +535,7 @@ int ipu_buttress_power(struct device *dev,
 				 val, ((val & ctrl->pwr_sts_mask) == pwr_sts),
 				 100, BUTTRESS_POWER_TIMEOUT);
 	if (ret)
-	dev_err(&isp->pdev->dev,
+		dev_err(&isp->pdev->dev,
 			"Change power status timeout with 0x%x\n", val);
 
 	ctrl->started = !ret && on;
