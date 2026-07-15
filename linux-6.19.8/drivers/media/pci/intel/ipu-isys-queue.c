@@ -240,10 +240,22 @@ void ipu_isys_buffer_list_queue(struct ipu_isys_buffer_list *bl,
 			av = ipu_isys_queue_to_video(aq);
 			spin_lock_irqsave(&aq->lock, flags);
 			list_del(&ib->head);
-			if (op_flags & IPU_ISYS_BUFFER_LIST_FL_ACTIVE)
-				list_add(&ib->head, &aq->active);
-			else if (op_flags & IPU_ISYS_BUFFER_LIST_FL_INCOMING)
-				list_add_tail(&ib->head, &aq->incoming);
+			/*
+			 * A buffer completed to vb2 is owned by user space
+			 * again and must NOT stay linked on a driver list:
+			 * the next QBUF would list_add the same node a
+			 * second time and corrupt the queue (crashes the
+			 * first time a stream start fails and the app
+			 * retries, e.g. wireplumber).
+			 */
+			if (!(op_flags & IPU_ISYS_BUFFER_LIST_FL_SET_STATE)) {
+				if (op_flags & IPU_ISYS_BUFFER_LIST_FL_ACTIVE)
+					list_add(&ib->head, &aq->active);
+				else if (op_flags &
+					 IPU_ISYS_BUFFER_LIST_FL_INCOMING)
+					list_add_tail(&ib->head,
+						      &aq->incoming);
+			}
 			spin_unlock_irqrestore(&aq->lock, flags);
 
 			if (op_flags & IPU_ISYS_BUFFER_LIST_FL_SET_STATE)

@@ -34,3 +34,15 @@ else
     echo "ERROR: /dev/media0 missing, check dmesg" >&2
     exit 1
 fi
+
+# Unpin mmu1 once the udev probe storm is over (30s is plenty). With
+# mmu1 permanently pinned, mmu0 can never suspend, so a wedged stream's
+# reset_needed latch could only be cleared by a manual island cycle —
+# app-driven use (libcamera/PipeWire) needs the island to self-heal via
+# runtime PM instead. The handshake-timeout race the pin guards against
+# only occurs during the load-time node-probe storm.
+(
+    sleep 30
+    echo auto > "$MMU1" 2>/dev/null || true
+) &
+disown

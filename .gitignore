@@ -27,3 +27,4 @@ Module.symvers
 /autotest/boot-*/
 /autotest/count
 /autotest/DONE
+/libcamera-build/
