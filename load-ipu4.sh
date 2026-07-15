@@ -1,0 +1,36 @@
+#!/bin/bash
+# Load the IPU4 camera driver stack in the required order.
+# Modules are blacklisted in /etc/modprobe.d/ipu4.conf, so run this
+# once after each boot (as root).
+set -e
+
+modprobe ipu_bridge
+modprobe intel_ipu4p_isys_csslib
+modprobe intel_ipu4p_psys_csslib
+modprobe intel_ipu4p
+modprobe intel_ipu4p_psys
+
+# Pin mmu1 (psys island) ON before the isys module creates video nodes.
+# Otherwise the udev v4l_id probe storm (~50 node opens, each
+# re-authenticating fw) bounces the psys power island off/on rapidly;
+# one buttress power handshake timing out (-ETIMEDOUT, "Change power
+# status timeout") latches mmu1 into runtime PM 'error' state, which is
+# unrecoverable without a reboot. Island cycles must temporarily set
+# this back to auto (see cycle_island in the test scripts).
+MMU1=/sys/bus/intel-ipu4-bus/devices/intel-ipu4-mmu1/power/control
+for i in $(seq 1 50); do
+    [ -e "$MMU1" ] && break
+    sleep 0.1
+done
+echo on > "$MMU1" || echo "WARN: could not pin mmu1" >&2
+
+modprobe intel_ipu4p_isys
+
+sleep 2
+if [ -e /dev/media0 ]; then
+    echo "IPU4 stack loaded, /dev/media0 present:"
+    dmesg | grep -E 'CSE|Connected.*cameras' | tail -4
+else
+    echo "ERROR: /dev/media0 missing, check dmesg" >&2
+    exit 1
+fi

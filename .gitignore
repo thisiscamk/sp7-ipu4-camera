@@ -1,0 +1,29 @@
+# Vanilla kernel tree — only the Intel IPU driver subtree is tracked,
+# via `git add -f linux-6.19.8/drivers/media/pci/intel` (the kernel's
+# own nested .gitignore negations defeat a parent unignore chain)
+/linux-6.19.8/
+/linux-6.19.8.tar.xz
+
+# Kernel build artifacts
+*.o
+*.o.d
+*.ko
+*.mod
+*.mod.c
+.*.cmd
+modules.order
+Module.symvers
+
+# Upstream reference clone (github.com/ruslanbay/ipu4-next)
+/ipu4-next/
+
+# Firmware blob (ipu4-20191030, from the ipu4-next repo's assets)
+/ipu4p_cpd.bin
+
+# Captures and per-run logs
+*.raw
+/logs/
+/logs-run*/
+/autotest/boot-*/
+/autotest/count
+/autotest/DONE
