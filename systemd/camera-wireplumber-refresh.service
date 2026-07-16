@@ -1,0 +1,21 @@
+[Unit]
+Description=Refresh WirePlumber once the IPU4 camera driver appears (SP7)
+# The IPU4 stack loads 60s after boot (camera-ipu4-load.timer), well after
+# the graphical session starts WirePlumber. WirePlumber's libcamera monitor
+# does not create nodes for cameras that appear after it starts (libcamera's
+# hotplug enumeration runs inside the process, but no nodes materialize), so
+# restart it once /dev/media0 shows up. Install as a *user* unit:
+#   cp camera-wireplumber-refresh.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable camera-wireplumber-refresh.service
+After=wireplumber.service
+
+[Service]
+Type=oneshot
+# Wait up to 3 minutes for the driver; give node creation a moment to
+# settle, then bounce wireplumber (try-restart: only if it is running).
+# If the driver never loads, exit quietly.
+ExecStart=/bin/bash -c 'for i in $(seq 1 180); do if [ -e /dev/media0 ]; then sleep 3; exec systemctl --user try-restart wireplumber.service; fi; sleep 1; done; exit 0'
+
+[Install]
+WantedBy=default.target
