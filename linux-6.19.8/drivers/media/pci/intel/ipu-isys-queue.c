@@ -632,7 +632,13 @@ static void verify_stream_start(struct ipu_isys_pipeline *ip)
 
 	atomic_set(&ip->verify_active, 1);
 
-	for (retry = 0; retry < 15; retry++) {
+	/*
+	 * Lock probability per attempt varies session to session (observed
+	 * ~20-70%); 30 retries keeps the miss-all chance negligible even on
+	 * bad days, and costs nothing when the lock comes early (the loop
+	 * exits on the first error-free frame).
+	 */
+	for (retry = 0; retry < 30; retry++) {
 		done = atomic_read(&ip->frames_done);
 		for (tick = 0; tick < 12; tick++) {
 			msleep(50);
