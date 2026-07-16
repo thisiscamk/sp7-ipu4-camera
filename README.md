@@ -106,6 +106,18 @@ Beware: a logged-in desktop session's wireplumber grabs every
     achieve D-PHY lock on this link (0/15+ sensor restarts, vs ~20-70%
     per attempt at full resolution). The sensor always outputs the full
     crop; libcamera's software ISP scales to the requested size.
+12. Unlink the debug capture nodes from the media graph (new isys param
+    `debug_capture_links=1` restores them) so apps reach the only clean
+    output route. Of the IPU4's three output paths, two scramble pixels:
+    the per-CSI-2 direct capture nodes are str2mmio MIPI packet dumps
+    whose DMA accumulates bytes instead of addressing lines (every D-PHY
+    line glitch shears the rest of the frame — this is what libcamera
+    picked, hence speckled/sheared SoftISP output), and the CSI2 BE
+    (ISA/ISL) capture interleaves the fabric's dual-line processing into
+    the buffer as rate-matched 64-byte bursts. Only the CSI2 BE SOC path
+    (`RAW_SOC` pin) writes pixel-perfect line-addressed raster frames.
+    `enable-link.py` exists because the BE SOC links are DYNAMIC and
+    media-ctl drops that flag on MEDIA_IOC_SETUP_LINK (kernel EINVAL).
 
 ## The front-camera reliability fix, in short
 
