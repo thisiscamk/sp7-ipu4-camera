@@ -92,6 +92,20 @@ Beware: a logged-in desktop session's wireplumber grabs every
 8. Diagnostics: runtime-writable module params `csi2_fw_src`,
    `csi2_csettle`/`csi2_dsettle`, `phy_bb_extra`/`phy_afe_extra`/
    `phy_jsl_bits`.
+9. Fix `ipu_isys_buffer_list_queue()` double-booking buffers when called
+   with `INCOMING|SET_STATE` — a buffer completed to vb2 stayed linked on
+   the driver's incoming list, so the app's requeue double-added the list
+   node → kernel `BUG at lib/list_debug.c:32` on the next failed stream
+   start (readily triggered by WirePlumber's retry loop).
+10. Fix `BUTTRESS_POWER_TIMEOUT`: it feeds `readl_poll_timeout()`'s
+    microseconds argument but was a bare `200` — 200 **µs** for the power
+    island handshake (ipu6 uses 200 **ms** for the same register). Warm
+    transitions pass; the first cold power-up after the island idles off
+    times out and latches runtime PM `error` state until reboot.
+11. ov5693: disable the 2x2-binned modes (SP7 quirk) — binned modes never
+    achieve D-PHY lock on this link (0/15+ sensor restarts, vs ~20-70%
+    per attempt at full resolution). The sensor always outputs the full
+    crop; libcamera's software ISP scales to the requested size.
 
 ## The front-camera reliability fix, in short
 
@@ -105,7 +119,7 @@ can't requeue — it's still blocked in STREAMON).
 The driver now counts only **error-free** `PIN_DATA_READY` responses
 (`frames_done`), and after handing all buffers to the firmware it polls
 for a clean frame; if none arrives in 600 ms it bounces the sensor's
-`s_stream` to re-roll the lock (up to 15 times). While this runs,
+`s_stream` to re-roll the lock (up to 30 times). While this runs,
 corrupt-frame buffers are **parked back on the incoming queue and
 re-fed to the firmware after each bounce**, so the firmware never
 starves and the first successful lock is observable within ~150 ms.
@@ -118,8 +132,26 @@ bounce at all, the rest typically 1-6.
 - The start-guard doesn't cover the rare case of a stream dying
   mid-capture after a good start.
 - ov7251 (IR) i2c probe fails (`-110`) and is ignored.
-- No libcamera/PipeWire integration yet: ipu4-next has patches for
-  libcamera 0.7.0, Fedora 43 ships 0.5.2.
+- No per-sensor SoftISP tuning files (uncalibrated fallback: colors can
+  look flat).
+
+## libcamera / PipeWire integration
+
+The media device registers as `intel-ipu6`, which libcamera's simple
+pipeline already supports with the software ISP. `libcamera/` holds a
+one-patch rebuild of Fedora's libcamera 0.5.2 srpm (adds an
+`intel-ipu4-isys` table entry and relaxes a fourcc check) plus
+`rebuild-libcamera.sh`. `wireplumber/50-sp7-ipu4.conf` hides the ~55 raw
+V4L2 nodes so apps only see the two libcamera camera nodes.
+
+Two session-level pieces in `systemd/`:
+
+- `camera-ipu4-load.timer`/`.service` (system): load the driver stack
+  60 s after boot (CSE settle time).
+- `camera-wireplumber-refresh.service` (user): restart WirePlumber once
+  `/dev/media0` appears — its libcamera monitor does not create nodes
+  for cameras that show up after it starts, and it starts at login,
+  well before the driver loads.
 
 ## License
 
