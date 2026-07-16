@@ -161,6 +161,18 @@ struct ipu_isys_video {
 	struct ipu_isys_stream *stream;
 	unsigned int streaming;
 	bool packed;
+	/*
+	 * Debug tap: register the video node but do not link it into the
+	 * media graph unless the isys module is loaded with
+	 * debug_capture_links=1. Set for the per-CSI-2 direct capture and
+	 * meta nodes (str2mmio MIPI packet dumps: the DMA accumulates
+	 * received payload bytes, so every PHY line glitch shears the rest
+	 * of the frame) and the CSI2 BE (ISA/ISL) capture (the dual-line
+	 * fabric interleaves the output beyond use). Keeping the nodes
+	 * unlinked steers libcamera's media-graph walk to the CSI2 BE SOC
+	 * path, the only route that produces clean raster frames.
+	 */
+	bool debug_link_only;
 	unsigned int line_header_length;	/* bits */
 	unsigned int line_footer_length;	/* bits */
 	struct video_stream_watermark watermark;

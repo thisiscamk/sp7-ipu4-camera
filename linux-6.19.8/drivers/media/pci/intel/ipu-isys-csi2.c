@@ -824,6 +824,7 @@ int ipu_isys_csi2_init(struct ipu_isys_csi2 *csi2,
 			 IPU_ISYS_ENTITY_PREFIX " CSI-2 %u capture %d",
 			 index, i);
 		csi2->av[i].isys = isys;
+		csi2->av[i].debug_link_only = true;
 		csi2->av[i].aq.css_pin_type = IPU_FW_ISYS_PIN_TYPE_MIPI;
 		csi2->av[i].pfmts = ipu_isys_pfmts_packed;
 		csi2->av[i].try_fmt_vid_mplane = csi2_try_fmt;
@@ -854,6 +855,7 @@ int ipu_isys_csi2_init(struct ipu_isys_csi2 *csi2,
 	snprintf(csi2->av_meta.vdev.name, sizeof(csi2->av_meta.vdev.name),
 		 IPU_ISYS_ENTITY_PREFIX " CSI-2 %u meta", index);
 	csi2->av_meta.isys = isys;
+	csi2->av_meta.debug_link_only = true;
 	csi2->av_meta.aq.css_pin_type = IPU_FW_ISYS_PIN_TYPE_MIPI;
 	csi2->av_meta.pfmts = csi2_meta_pfmts;
 	csi2->av_meta.try_fmt_vid_mplane = csi2_try_fmt;

@@ -38,6 +38,11 @@ static bool use_stream_stop;
 module_param(use_stream_stop, bool, 0660);
 MODULE_PARM_DESC(use_stream_stop, "Use STOP command if running in CSI capture mode");
 
+static bool debug_capture_links;
+module_param(debug_capture_links, bool, 0444);
+MODULE_PARM_DESC(debug_capture_links,
+		 "Also link the debug capture nodes (per-CSI-2 MIPI packet dumps, CSI2 BE/ISA) into the media graph; their output is not a clean raster (default 0)");
+
 static void ipu_isys_log_csi2_state(struct device *dev,
 				    struct ipu_isys_pipeline *ip,
 				    const char *tag)
@@ -2442,12 +2447,16 @@ int ipu_isys_video_init(struct ipu_isys_video *av,
 	if (rval)
 		goto out_media_entity_cleanup;
 
-	if (pad_flags & MEDIA_PAD_FL_SINK)
+	if (av->debug_link_only && !debug_capture_links) {
+		/* Debug tap: leave unlinked, see ipu_isys_video::debug_link_only */
+		rval = 0;
+	} else if (pad_flags & MEDIA_PAD_FL_SINK) {
 		rval = media_create_pad_link(entity, pad,
 					     &av->vdev.entity, 0, flags);
-	else
+	} else {
 		rval = media_create_pad_link(&av->vdev.entity, 0, entity,
 					     pad, flags);
+	}
 	if (rval) {
 		dev_info(&av->isys->adev->dev, "can't create link\n");
 		goto out_media_entity_cleanup;

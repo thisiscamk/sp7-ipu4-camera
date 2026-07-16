@@ -266,6 +266,7 @@ int ipu_isys_csi2_be_init(struct ipu_isys_csi2_be *csi2_be,
 		 IPU_ISYS_ENTITY_PREFIX " CSI2 BE");
 	snprintf(csi2_be->av.vdev.name, sizeof(csi2_be->av.vdev.name),
 		 IPU_ISYS_ENTITY_PREFIX " CSI2 BE capture");
+	csi2_be->av.debug_link_only = true;
 	csi2_be->av.aq.css_pin_type = IPU_FW_ISYS_PIN_TYPE_RAW_NS;
 	v4l2_set_subdevdata(&csi2_be->asd.sd, &csi2_be->asd);
 	rval = v4l2_device_register_subdev(&isys->v4l2_dev, &csi2_be->asd.sd);
